@@ -1,20 +1,19 @@
-package com.github.vakho10.backend.component;
+package com.github.vakho10.backend.service;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-/**
- * Every websocket session will have its own {@link WebSocketHandler} instance with a unique browser instance.
- */
-@Component
+@Slf4j
+@Service
 @Scope(scopeName = "websocket", proxyMode = ScopedProxyMode.TARGET_CLASS)
-public class WebSocketHandler {
+public class BrowserService {
 
     private WebDriver driver;
 
@@ -22,12 +21,18 @@ public class WebSocketHandler {
     void init() {
         WebDriverManager.chromedriver().setup();
         driver = new ChromeDriver();
+        log.debug("Browser initialized");
     }
 
     @PreDestroy
-    public void destroy() {
+    void destroy() {
         if (driver != null) {
             driver.quit();
+            log.debug("Browser destroyed");
         }
+    }
+
+    public void touch() {
+        // An empty method to trigger bean instantiation, even if no other method is called
     }
 }

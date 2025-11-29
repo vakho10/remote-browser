@@ -1,0 +1,6 @@
+{
+  "/ws/**": {
+    "target": "ws://localhost:9090",
+    "secure": false
+  }
+}
