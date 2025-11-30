@@ -64,4 +64,17 @@ export class RemoteBrowserComponent implements OnInit, OnDestroy {
   scrollDown() {
     this.webSocketService.scrollDown();
   }
+
+  onContentClick(event: MouseEvent) {
+    const rect = this.content.nativeElement.getBoundingClientRect();
+
+    // Compute relative coordinates (0-based within the screenshot)
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    console.log('Clicked at:', x, y);
+
+    // Send coordinates to the backend
+    this.webSocketService.clickAt(x, y);
+  }
 }

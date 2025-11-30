@@ -22,7 +22,8 @@
   </nav>
   <main #content class="content">
     @if (webSocketService.imageSubject | async; as imageResponse) {
-      <div [style.background-image]="'url(data:image/png;base64,' + imageResponse + ')'">
+      <div [style.background-image]="'url(data:image/png;base64,' + imageResponse + ')'"
+           (click)="onContentClick($event)">
       </div>
     } @else {
       <p><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p>

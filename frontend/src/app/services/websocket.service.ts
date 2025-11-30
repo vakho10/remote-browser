@@ -150,4 +150,11 @@ export class WebSocketService {
       body: "",
     });
   }
+
+  clickAt(x: number, y: number) {
+    this.client.publish({
+      destination: "/app/click-at",
+      body: JSON.stringify({x, y}),
+    });
+  }
 }

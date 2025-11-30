@@ -1,5 +1,6 @@
 package com.github.vakho10.backend.controller;
 
+import com.github.vakho10.backend.payload.ClickRequest;
 import com.github.vakho10.backend.payload.ResizeRequest;
 import com.github.vakho10.backend.service.BrowserService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,11 @@ public class BrowserController {
     @MessageMapping("/scroll-down")
     public void scrollDown() {
         browserService.scrollDown();
+    }
+
+    @MessageMapping("/click-at")
+    public void scrollDown(@Payload ClickRequest clickRequest) {
+        browserService.clickAt(clickRequest.getX(), clickRequest.getY());
     }
 
     @MessageMapping("/get-screenshot")

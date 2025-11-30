@@ -12,10 +12,14 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.devtools.DevTools;
 import org.openqa.selenium.devtools.v142.emulation.Emulation;
 import org.openqa.selenium.devtools.v142.page.Page;
+import org.openqa.selenium.interactions.PointerInput;
+import org.openqa.selenium.interactions.Sequence;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -111,5 +115,19 @@ public class BrowserService {
 
     public void scrollDown() {
         driver.executeScript("window.scrollBy(0, 100)");
+    }
+
+    public void clickAt(int x, int y) {
+        // Using Selenium Actions API (low-level pointer input)
+        PointerInput mouse = new PointerInput(PointerInput.Kind.MOUSE, "default mouse");
+        Sequence click = new Sequence(mouse, 0);
+
+        click.addAction(mouse.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), x, y));
+        click.addAction(mouse.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+        click.addAction(mouse.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+
+        driver.perform(List.of(click));
+
+        log.debug("Clicked at coordinates: {}x{}", x, y);
     }
 }
