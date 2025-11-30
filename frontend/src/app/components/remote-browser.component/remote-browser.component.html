@@ -1,19 +1,31 @@
 <div class="remote-browser">
-  <nav class="navigation">
-    <button (click)="goBack()">&larr;</button>
-    <button (click)="goForward()">&rarr;</button>
-    <button (click)="refreshPage()">&#8635;</button>
-    <input type="text" [(ngModel)]="url" placeholder="Enter URL"/>
-    <button (click)="connectToWebsite()">Connect to URL</button>
-    <button (click)="scrollUp()">&uarr;</button>
-    <button (click)="scrollDown()">&darr;</button>
+  <nav class="bg-primary d-flex gap-1 p-1">
+    <button class="btn btn-primary" (click)="goBack()">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+    <button class="btn btn-primary" (click)="goForward()">
+      <i class="fa-solid fa-arrow-right"></i>
+    </button>
+    <button class="btn btn-primary" (click)="refreshPage()">
+      <i class="fa-solid fa-arrow-rotate-right"></i>
+    </button>
+    <input class="form-control flex-grow-1" type="text" [(ngModel)]="inputFieldUrl" placeholder="Enter URL"/>
+    <button class="btn btn-primary" (click)="connectToWebsite()">
+      <i class="fa-solid fa-play"></i>
+    </button>
+    <button class="btn btn-primary" (click)="scrollUp()">
+      <i class="fa-solid fa-arrow-up"></i>
+    </button>
+    <button class="btn btn-primary" (click)="scrollDown()">
+      <i class="fa-solid fa-arrow-down"></i>
+    </button>
   </nav>
   <main #content class="content">
     @if (webSocketService.imageSubject | async; as imageResponse) {
       <div [style.background-image]="'url(data:image/png;base64,' + imageResponse + ')'">
       </div>
     } @else {
-      <p>No image to display.</p>
+      <p><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p>
     }
   </main>
 </div>

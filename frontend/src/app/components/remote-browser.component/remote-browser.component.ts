@@ -13,7 +13,8 @@ import {FormsModule} from "@angular/forms";
 export class RemoteBrowserComponent implements OnInit, OnDestroy {
 
   webSocketService = inject(WebSocketService);
-  url = "";
+  currentUrl: string | null = null;
+  inputFieldUrl = "";
   private resizeObserver?: ResizeObserver;
 
   @ViewChild('content', {static: true})
@@ -30,7 +31,8 @@ export class RemoteBrowserComponent implements OnInit, OnDestroy {
   }
 
   connectToWebsite() {
-    this.webSocketService.connectToWebsite(this.url);
+    this.webSocketService.connectToWebsite(this.inputFieldUrl);
+    this.currentUrl = this.inputFieldUrl
   }
 
   ngOnDestroy() {
@@ -51,7 +53,8 @@ export class RemoteBrowserComponent implements OnInit, OnDestroy {
   }
 
   refreshPage() {
-
+    if (!this.currentUrl) return;
+    this.webSocketService.connectToWebsite(this.currentUrl);
   }
 
   scrollUp() {

@@ -41,7 +41,6 @@ public class BrowserService {
         options.addArguments("--no-sandbox"); // Often needed for Linux environments
         driver = new ChromeDriver(options);
 
-
         // Initialize DevTools
         devTools = driver.getDevTools();
         devTools.createSession();
