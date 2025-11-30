@@ -1,1 +1,19 @@
-<p>remote-browser.component works!</p>
+<div class="remote-browser">
+  <nav class="navigation">
+    <button (click)="goBack()">&larr;</button>
+    <button (click)="goForward()">&rarr;</button>
+    <button (click)="refreshPage()">&#8635;</button>
+    <input type="text" [(ngModel)]="url" placeholder="Enter URL"/>
+    <button (click)="connectToWebsite()">Connect to URL</button>
+    <button (click)="scrollUp()">&uarr;</button>
+    <button (click)="scrollDown()">&darr;</button>
+  </nav>
+  <main #content class="content">
+    @if (webSocketService.imageSubject | async; as imageResponse) {
+      <div [style.background-image]="'url(data:image/png;base64,' + imageResponse + ')'">
+      </div>
+    } @else {
+      <p>No image to display.</p>
+    }
+  </main>
+</div>

@@ -1,3 +1,9 @@
+server:
+  port: 9090
+
 spring:
   application:
     name: backend
+logging:
+  level:
+    com.github.vakho10.backend: DEBUG

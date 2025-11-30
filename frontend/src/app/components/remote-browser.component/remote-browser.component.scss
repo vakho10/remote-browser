@@ -1,0 +1,37 @@
+:host {
+  flex-grow: 1;
+}
+
+.remote-browser {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  & .navigation {
+    display: flex;
+    gap: .25rem;
+    padding: .25rem;
+
+    & input[type="text"] {
+      flex-grow: 1;
+    }
+  }
+
+  & .content {
+    position: relative;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #eee;
+
+    & > div {
+      width: 100%;
+      height: 100%;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+  }
+}

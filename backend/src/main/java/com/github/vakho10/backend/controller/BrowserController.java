@@ -1,0 +1,55 @@
+package com.github.vakho10.backend.controller;
+
+import com.github.vakho10.backend.payload.ResizeRequest;
+import com.github.vakho10.backend.service.BrowserService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Controller;
+
+@Controller
+@RequiredArgsConstructor
+public class BrowserController {
+
+    private final BrowserService browserService;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    @MessageMapping("/get-session-id")
+    @SendTo("/topic/get-session-id")
+    public String getSessionId() {
+        return browserService.getSessionId();
+    }
+
+    @MessageMapping("/resize-to")
+    public void resizeTo(@Payload ResizeRequest resizeRequest) {
+        browserService.resizeViewport(resizeRequest.getWidth(), resizeRequest.getHeight());
+    }
+
+    @MessageMapping("/connect-to-url")
+    public void connectToUrl(@Payload String url) {
+        browserService.connectToUrl(url);
+    }
+
+    @MessageMapping("/scroll-up")
+    public void scrollUp() {
+        browserService.scrollUp();
+    }
+
+    @MessageMapping("/scroll-down")
+    public void scrollDown() {
+        browserService.scrollDown();
+    }
+
+    @MessageMapping("/get-screenshot")
+    public void getScreenshot() {
+        String screenshot = browserService.captureVisibleViewportScreenshot();
+
+        // Send a screenshot to the session-specific topic
+        messagingTemplate.convertAndSend(
+                "/topic/screenshot.%s".formatted(browserService.getSessionId()),
+                screenshot
+        );
+    }
+}
