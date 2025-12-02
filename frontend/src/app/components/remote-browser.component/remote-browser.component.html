@@ -13,12 +13,6 @@
     <button class="btn btn-primary" (click)="connectToWebsite()">
       <i class="fa-solid fa-play"></i>
     </button>
-    <button class="btn btn-primary" (click)="scrollUp()">
-      <i class="fa-solid fa-arrow-up"></i>
-    </button>
-    <button class="btn btn-primary" (click)="scrollDown()">
-      <i class="fa-solid fa-arrow-down"></i>
-    </button>
   </nav>
   <main #content class="content">
     @if (webSocketService.imageSubject | async; as imageResponse) {

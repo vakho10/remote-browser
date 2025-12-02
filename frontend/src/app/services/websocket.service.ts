@@ -44,6 +44,12 @@ export class WebSocketService {
           })
         });
 
+        // Subscribe to active input trigger
+        this.client.subscribe(
+          `/topic/activate-input.${this.sessionId}`,
+          this.handleActivateInputResponse.bind(this)
+        );
+
         // Subscribe to a session-specific screenshot topic
         this.client.subscribe(
           `/topic/screenshot.${this.sessionId}`,
@@ -110,6 +116,20 @@ export class WebSocketService {
     });
   }
 
+  private handleActivateInputResponse(message: IMessage) {
+    console.log("Received input activation trigger");
+    try {
+      const response: { type: string, value: string } = JSON.parse(message.body);
+      const inputValue = prompt("Update or enter new value for input field", response.value);
+      if (inputValue) {
+        console.log("Received input:", inputValue);
+        this.sendValueToActiveInput(inputValue);
+      }
+    } catch (e) {
+      console.error('Failed to parse active input:', e);
+    }
+  }
+
   /** Handle incoming screenshot messages */
   private handleImageResponse(message: IMessage) {
     console.log("Received screenshot");
@@ -135,6 +155,13 @@ export class WebSocketService {
       clearTimeout(this.pollingTimeoutId);
       this.pollingTimeoutId = null;
     }
+  }
+
+  sendValueToActiveInput(value: string) {
+    this.client.publish({
+      destination: "/app/send-value-to-active-input",
+      body: value,
+    });
   }
 
   scrollUp() {

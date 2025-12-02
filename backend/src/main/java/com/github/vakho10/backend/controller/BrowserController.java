@@ -1,5 +1,6 @@
 package com.github.vakho10.backend.controller;
 
+import com.github.vakho10.backend.payload.ActiveInputResponse;
 import com.github.vakho10.backend.payload.ClickRequest;
 import com.github.vakho10.backend.payload.ResizeRequest;
 import com.github.vakho10.backend.service.BrowserService;
@@ -44,8 +45,19 @@ public class BrowserController {
     }
 
     @MessageMapping("/click-at")
-    public void scrollDown(@Payload ClickRequest clickRequest) {
-        browserService.clickAt(clickRequest.getX(), clickRequest.getY());
+    public void clickAt(@Payload ClickRequest clickRequest) {
+        var activeInputResponse = browserService.clickAt(clickRequest.getX(), clickRequest.getY());
+        if (activeInputResponse != null) {
+            messagingTemplate.convertAndSend(
+                    "/topic/activate-input.%s".formatted(browserService.getSessionId()),
+                    activeInputResponse
+            );
+        }
+    }
+
+    @MessageMapping("/send-value-to-active-input")
+    public void sendValueToActiveInput(@Payload String value) {
+        browserService.sendValueToActiveInput(value);
     }
 
     @MessageMapping("/get-screenshot")

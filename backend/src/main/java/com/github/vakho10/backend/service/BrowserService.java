@@ -1,5 +1,6 @@
 package com.github.vakho10.backend.service;
 
+import com.github.vakho10.backend.payload.ActiveInputResponse;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -7,6 +8,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.devtools.DevTools;
@@ -117,7 +119,7 @@ public class BrowserService {
         driver.executeScript("window.scrollBy(0, 100)");
     }
 
-    public void clickAt(int x, int y) {
+    public ActiveInputResponse clickAt(int x, int y) {
         // Using Selenium Actions API (low-level pointer input)
         PointerInput mouse = new PointerInput(PointerInput.Kind.MOUSE, "default mouse");
         Sequence click = new Sequence(mouse, 0);
@@ -129,5 +131,30 @@ public class BrowserService {
         driver.perform(List.of(click));
 
         log.debug("Clicked at coordinates: {}x{}", x, y);
+
+        // Save active input element
+        WebElement active = driver.switchTo().activeElement();
+        String tag = active.getTagName();
+
+        if ("input".equalsIgnoreCase(tag)) {
+            ActiveInputResponse response = new ActiveInputResponse();
+            response.setType(active.getAttribute("type"));
+            response.setValue(active.getAttribute("value"));
+            return response;
+        } else if ("textarea".equalsIgnoreCase(tag)) {
+            ActiveInputResponse response = new ActiveInputResponse();
+            response.setType(active.getAttribute("type"));
+            response.setValue(active.getText());
+            return response;
+        } else {
+            log.warn("Clicked element is not focusable: " + tag);
+            return null;
+        }
+    }
+
+    public void sendValueToActiveInput(String value) {
+        WebElement active = driver.switchTo().activeElement();
+        active.sendKeys(value);
+        log.debug("Sent value '{}' to active input element", value);
     }
 }
