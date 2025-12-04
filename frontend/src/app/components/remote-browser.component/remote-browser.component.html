@@ -1,4 +1,4 @@
-<div class="remote-browser">
+<div class="d-flex flex-column h-100 position-relative">
   <nav class="bg-primary d-flex gap-1 p-1">
     <button class="btn btn-primary" (click)="goBack()">
       <i class="fa-solid fa-arrow-left"></i>
@@ -14,12 +14,19 @@
       <i class="fa-solid fa-play"></i>
     </button>
   </nav>
-  <main #content class="content">
-    @if (webSocketService.imageSubject | async; as imageResponse) {
-      <div [style.background-image]="'url(data:image/png;base64,' + imageResponse + ')'"
-           (click)="onContentClick($event)">
-      </div>
-    } @else {
+  <main class="d-flex flex-column align-items-center justify-content-center flex-grow-1 position-relative">
+
+    <!-- overlay defines target size -->
+    <div #overlay
+         style="pointer-events: none;"
+         class="flex-grow-1 position-absolute w-100 h-100 top-0 start-0 z-2"></div>
+
+    <!-- canvas draws the live remote screen -->
+    <canvas #screenCanvas
+            (click)="onMouseClick($event)"
+            class="position-absolute top-0 start-0 z-1"></canvas>
+
+    @if (!(webSocketService.imageSubject | async)) {
       <p><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p>
     }
   </main>

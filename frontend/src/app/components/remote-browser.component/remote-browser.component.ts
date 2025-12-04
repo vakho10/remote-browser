@@ -14,51 +14,65 @@ import {debounceTime, fromEvent, Subject, Subscription, throttleTime} from "rxjs
 export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy {
 
   webSocketService = inject(WebSocketService);
+
   currentUrl: string | null = null;
   inputFieldUrl = "";
+
   private resizeObserver?: ResizeObserver;
   private resizeSubject = new Subject<ResizeObserverEntry>();
 
-  @ViewChild('content', {static: true})
-  content!: ElementRef;
-
   private wheelSub?: Subscription;
+  private imageSub?: Subscription;
+
+  @ViewChild('overlay', {static: true})
+  overlay!: ElementRef<HTMLDivElement>;
+
+  @ViewChild('screenCanvas', {static: true})
+  canvasRef!: ElementRef<HTMLCanvasElement>;
+  private ctx!: CanvasRenderingContext2D;
 
   ngOnInit() {
     this.webSocketService.activate();
 
+    // Observe ONLY overlay — it defines logical size of remote screen
     this.resizeObserver = new ResizeObserver(entries => {
       entries.forEach(entry => this.resizeSubject.next(entry));
     });
-    this.resizeObserver.observe(this.content.nativeElement);
 
-    // Only emit the last size after 200ms of no new resize events
-    this.resizeSubject.pipe(
-      debounceTime(200)
-    ).subscribe(entry => {
-      this.resizeTo(entry.contentRect.width, entry.contentRect.height);
+    this.resizeObserver.observe(this.overlay.nativeElement);
+
+    // Send resize only after user stops resizing
+    this.resizeSubject.pipe(debounceTime(200)).subscribe(entry => {
+      const rect = entry.contentRect;
+
+      this.webSocketService.resizeTo(rect.width, rect.height);
+
+      // Match canvas pixel dimensions to overlay size
+      this.resizeCanvasToOverlay();
     });
   }
 
   ngAfterViewInit() {
-    this.wheelSub = fromEvent<WheelEvent>(this.content.nativeElement, 'wheel')
-      .pipe(
-        throttleTime(100) // only emit once every 100ms
-      )
-      .subscribe(event => {
-        event.preventDefault(); // prevent local scrolling
+    const canvas = this.canvasRef.nativeElement;
+    this.ctx = canvas.getContext('2d')!;
 
-        if (event.deltaY < 0) {
-          this.webSocketService.scrollUp();
-        } else if (event.deltaY > 0) {
-          this.webSocketService.scrollDown();
-        }
+    // Initial sync
+    this.resizeCanvasToOverlay();
+
+    // Listen for images
+    this.imageSub = this.webSocketService.imageSubject.subscribe(base64 => {
+      if (!base64) return;
+      this.drawImage(base64);
+    });
+
+    // Scroll events throttle
+    this.wheelSub = fromEvent<WheelEvent>(this.canvasRef.nativeElement, 'wheel')
+      .pipe(throttleTime(100))
+      .subscribe(e => {
+        e.preventDefault();
+        if (e.deltaY < 0) this.webSocketService.scrollUp();
+        else this.webSocketService.scrollDown();
       });
-  }
-
-  connectToWebsite() {
-    this.webSocketService.connectToWebsite(this.inputFieldUrl);
-    this.currentUrl = this.inputFieldUrl
   }
 
   ngOnDestroy() {
@@ -66,35 +80,83 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
     this.resizeObserver?.disconnect();
     this.resizeSubject.complete();
     this.wheelSub?.unsubscribe();
+    this.imageSub?.unsubscribe();
   }
 
-  resizeTo(width: number, height: number) {
-    this.webSocketService.resizeTo(width, height);
+  /** Always resize canvas pixel size to overlay size */
+  private resizeCanvasToOverlay() {
+    const canvas = this.canvasRef.nativeElement;
+    const rect = this.overlay.nativeElement.getBoundingClientRect();
+
+    // pixel buffer
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    // match visual size exactly
+    canvas.style.width = rect.width + "px";
+    canvas.style.height = rect.height + "px";
   }
 
-  goBack() {
+  /** Draw screenshot into canvas with background-size: contain behavior */
+  private drawImage(base64: string) {
+    const img = new Image();
+    img.src = "data:image/png;base64," + base64;
 
+    img.onload = () => {
+      const canvas = this.canvasRef.nativeElement;
+      const ctx = this.ctx;
+
+      const cw = canvas.width;
+      const ch = canvas.height;
+      const iw = img.width;
+      const ih = img.height;
+
+      ctx.clearRect(0, 0, cw, ch);
+
+      // aspect ratios
+      const canvasRatio = cw / ch;
+      const imageRatio = iw / ih;
+
+      let w, h, x, y;
+
+      if (imageRatio > canvasRatio) {
+        w = cw;
+        h = cw / imageRatio;
+        x = 0;
+        y = (ch - h) / 2;
+      } else {
+        h = ch;
+        w = ch * imageRatio;
+        y = 0;
+        x = (cw - w) / 2;
+      }
+
+      ctx.drawImage(img, x, y, w, h);
+    };
   }
 
-  goForward() {
-
+  connectToWebsite() {
+    this.webSocketService.connectToWebsite(this.inputFieldUrl);
+    this.currentUrl = this.inputFieldUrl;
   }
 
   refreshPage() {
-    if (!this.currentUrl) return;
-    this.webSocketService.connectToWebsite(this.currentUrl);
+    if (this.currentUrl) {
+      this.webSocketService.connectToWebsite(this.currentUrl);
+    }
   }
 
-  onContentClick(event: MouseEvent) {
-    const rect = this.content.nativeElement.getBoundingClientRect();
+  goBack() {
+  }
 
-    // Compute relative coordinates (0-based within the screenshot)
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+  goForward() {
+  }
 
-    console.log('Clicked at:', x, y);
-
-    // Send coordinates to the backend
-    this.webSocketService.clickAt(x, y);
+  onMouseClick(event: MouseEvent) {
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    this.webSocketService.clickAt(
+      event.clientX - rect.left,
+      event.clientY - rect.top
+    );
   }
 }
