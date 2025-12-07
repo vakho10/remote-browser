@@ -1,6 +1,7 @@
 package com.github.vakho10.backend.controller;
 
 import com.github.vakho10.backend.payload.ClickRequest;
+import com.github.vakho10.backend.payload.MoveRequest;
 import com.github.vakho10.backend.payload.ResizeRequest;
 import com.github.vakho10.backend.service.BrowserService;
 import lombok.RequiredArgsConstructor;
@@ -49,9 +50,13 @@ public class BrowserController {
         if (activeInputResponse != null) {
             messagingTemplate.convertAndSend(
                     "/topic/activate-input.%s".formatted(browserService.getSessionId()),
-                    activeInputResponse
-            );
+                    activeInputResponse);
         }
+    }
+
+    @MessageMapping("/move-mouse")
+    public void moveMouse(@Payload MoveRequest moveRequest) {
+        browserService.moveMouse(moveRequest.getX(), moveRequest.getY());
     }
 
     @MessageMapping("/send-value-to-active-input")
@@ -66,7 +71,6 @@ public class BrowserController {
         // Send a screenshot to the session-specific topic
         messagingTemplate.convertAndSend(
                 "/topic/taken-screenshot.%s".formatted(browserService.getSessionId()),
-                screenshot
-        );
+                screenshot);
     }
 }

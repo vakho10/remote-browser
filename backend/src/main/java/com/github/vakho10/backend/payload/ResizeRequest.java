@@ -4,7 +4,6 @@ import lombok.Data;
 
 @Data
 public class ResizeRequest {
-
     private int width;
     private int height;
 }

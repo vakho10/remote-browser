@@ -27,6 +27,7 @@
     <!-- canvas draws the live remote screen -->
     <canvas #screenCanvas
             (click)="onMouseClick($event)"
+            (mousemove)="onMouseMove($event)"
             class="position-absolute top-0 start-0 z-1"></canvas>
 
     @if (!(webSocketService.imageSubject | async)) {

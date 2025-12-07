@@ -1,6 +1,6 @@
-import { Injectable } from "@angular/core";
-import { Client, IMessage } from "@stomp/stompjs";
-import { ReplaySubject, Subject } from "rxjs";
+import {Injectable} from "@angular/core";
+import {Client, IMessage} from "@stomp/stompjs";
+import {ReplaySubject, Subject} from "rxjs";
 
 @Injectable({
   providedIn: "root",
@@ -19,7 +19,7 @@ export class WebSocketService {
   private sessionId: string | null = null;
 
   constructor() {
-    this.client = new Client({ brokerURL: '/ws', reconnectDelay: 5000 });
+    this.client = new Client({brokerURL: '/ws', reconnectDelay: 5000});
 
     this.client.onConnect = () => {
       console.log("Connected to WebSocket");
@@ -89,7 +89,7 @@ export class WebSocketService {
   }
 
   resizeTo(width: number, height: number) {
-    this.resizeSubject.next({ width, height });
+    this.resizeSubject.next({width, height});
   }
 
   /** Send a command to connect the browser to a URL */
@@ -157,7 +157,14 @@ export class WebSocketService {
   clickAt(x: number, y: number) {
     this.client.publish({
       destination: "/app/click-at",
-      body: JSON.stringify({ x, y }),
+      body: JSON.stringify({x, y}),
+    });
+  }
+
+  moveMouse(x: number, y: number) {
+    this.client.publish({
+      destination: "/app/move-mouse",
+      body: JSON.stringify({x, y}),
     });
   }
 

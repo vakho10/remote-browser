@@ -194,6 +194,13 @@ public class BrowserService {
         }
     }
 
+    public void moveMouse(int x, int y) {
+        PointerInput mouse = new PointerInput(PointerInput.Kind.MOUSE, "default mouse");
+        Sequence move = new Sequence(mouse, 0);
+        move.addAction(mouse.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), x, y));
+        driver.perform(List.of(move));
+    }
+
     public void sendValueToActiveInput(String value) {
         WebElement active = driver.switchTo().activeElement();
         active.sendKeys(value);

@@ -26,6 +26,8 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
   private wheelSub?: Subscription;
   private imageSub?: Subscription;
   private takenScreenshotSub?: Subscription;
+  private mouseMoveSub?: Subscription;
+  private mouseMoveSubject = new Subject<{ x: number, y: number }>();
 
   @ViewChild('overlay', {static: true})
   overlay!: ElementRef<HTMLDivElement>;
@@ -85,6 +87,13 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
         if (e.deltaY < 0) this.webSocketService.scrollUp();
         else this.webSocketService.scrollDown();
       });
+
+    // Mouse move events throttle
+    this.mouseMoveSub = this.mouseMoveSubject.pipe(
+      throttleTime(50)
+    ).subscribe(pos => {
+      this.webSocketService.moveMouse(pos.x, pos.y);
+    });
   }
 
   ngOnDestroy() {
@@ -94,6 +103,7 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
     this.wheelSub?.unsubscribe();
     this.imageSub?.unsubscribe();
     this.takenScreenshotSub?.unsubscribe();
+    this.mouseMoveSub?.unsubscribe();
   }
 
   /** Always resize canvas pixel size to overlay size */
@@ -212,5 +222,13 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
       event.clientX - rect.left,
       event.clientY - rect.top
     );
+  }
+
+  onMouseMove(event: MouseEvent) {
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    this.mouseMoveSubject.next({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    });
   }
 }
