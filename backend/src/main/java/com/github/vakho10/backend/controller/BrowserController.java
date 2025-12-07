@@ -1,6 +1,5 @@
 package com.github.vakho10.backend.controller;
 
-import com.github.vakho10.backend.payload.ActiveInputResponse;
 import com.github.vakho10.backend.payload.ClickRequest;
 import com.github.vakho10.backend.payload.ResizeRequest;
 import com.github.vakho10.backend.service.BrowserService;
@@ -60,13 +59,13 @@ public class BrowserController {
         browserService.sendValueToActiveInput(value);
     }
 
-    @MessageMapping("/get-screenshot")
+    @MessageMapping("/take-screenshot")
     public void getScreenshot() {
         String screenshot = browserService.captureVisibleViewportScreenshot();
 
         // Send a screenshot to the session-specific topic
         messagingTemplate.convertAndSend(
-                "/topic/screenshot.%s".formatted(browserService.getSessionId()),
+                "/topic/taken-screenshot.%s".formatted(browserService.getSessionId()),
                 screenshot
         );
     }

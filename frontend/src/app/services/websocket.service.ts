@@ -8,6 +8,7 @@ import { ReplaySubject, Subject } from "rxjs";
 export class WebSocketService {
   private client: Client;
 
+  takenScreenshotSubject = new Subject<string>();
   imageSubject = new Subject<string>();
 
   // ReplaySubject remembers all emitted values
@@ -47,6 +48,12 @@ export class WebSocketService {
         this.client.subscribe(
           `/topic/activate-input.${this.sessionId}`,
           this.handleActivateInputResponse.bind(this)
+        );
+
+        // Subscribe to a "take screenshot" button response topic
+        this.client.subscribe(
+          `/topic/taken-screenshot.${this.sessionId}`,
+          this.handleTakeScreenshot.bind(this)
         );
 
         // Subscribe to a session-specific screenshot topic
@@ -114,6 +121,12 @@ export class WebSocketService {
     }
   }
 
+  /** Handle "screenshot take" triggered by button click */
+  private handleTakeScreenshot(message: IMessage) {
+    console.log("Received taken screenshot");
+    this.takenScreenshotSubject.next(message.body);
+  }
+
   /** Handle incoming screenshot messages */
   private handleImageResponse(message: IMessage) {
     console.log("Received screenshot");
@@ -145,6 +158,13 @@ export class WebSocketService {
     this.client.publish({
       destination: "/app/click-at",
       body: JSON.stringify({ x, y }),
+    });
+  }
+
+  takeScreenshot() {
+    this.client.publish({
+      destination: "/app/take-screenshot",
+      body: "",
     });
   }
 }

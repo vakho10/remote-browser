@@ -3,6 +3,7 @@ import {WebSocketService} from "../../services/websocket.service";
 import {AsyncPipe} from "@angular/common";
 import {FormsModule} from "@angular/forms";
 import {debounceTime, fromEvent, Subject, Subscription, throttleTime} from "rxjs";
+import {FileSaverService} from 'ngx-filesaver';
 
 @Component({
   selector: 'app-remote-browser',
@@ -14,6 +15,7 @@ import {debounceTime, fromEvent, Subject, Subscription, throttleTime} from "rxjs
 export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy {
 
   webSocketService = inject(WebSocketService);
+  fileSaver = inject(FileSaverService);
 
   currentUrl: string | null = null;
   inputFieldUrl = "";
@@ -23,6 +25,7 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
 
   private wheelSub?: Subscription;
   private imageSub?: Subscription;
+  private takenScreenshotSub?: Subscription;
 
   @ViewChild('overlay', {static: true})
   overlay!: ElementRef<HTMLDivElement>;
@@ -68,6 +71,12 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
       this.drawImage(base64);
     });
 
+    // Listen for screenshots taken by button click
+    this.takenScreenshotSub = this.webSocketService.takenScreenshotSubject.subscribe(base64 => {
+      if (!base64) return;
+      this.downloadImage(base64);
+    })
+
     // Scroll events throttle
     this.wheelSub = fromEvent<WheelEvent>(this.canvasRef.nativeElement, 'wheel')
       .pipe(throttleTime(100))
@@ -84,6 +93,7 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
     this.resizeSubject.complete();
     this.wheelSub?.unsubscribe();
     this.imageSub?.unsubscribe();
+    this.takenScreenshotSub?.unsubscribe();
   }
 
   /** Always resize canvas pixel size to overlay size */
@@ -138,18 +148,20 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
     };
   }
 
-  connectToWebsite() {
-    if (this.inputFieldUrl) {
-      // Trim any "forward" history if user navigates after going back
-      this.history = this.history.slice(0, this.currentIndex + 1);
+  downloadImage(base64: string) {
+    const blob = this.base64ToBlob(base64, 'image/png');
+    this.fileSaver.save(blob, 'screenshot.png');
+  }
 
-      // Add new URL
-      this.history.push(this.inputFieldUrl);
-      this.currentIndex++;
+  private base64ToBlob(base64: string, mime: string) {
+    const byteString = atob(base64);
+    const buffer = new Uint8Array(byteString.length);
 
-      this.currentUrl = this.inputFieldUrl;
-      this.webSocketService.connectToWebsite(this.inputFieldUrl);
+    for (let i = 0; i < byteString.length; i++) {
+      buffer[i] = byteString.charCodeAt(i);
     }
+
+    return new Blob([buffer], {type: mime});
   }
 
   refreshPage() {
@@ -174,6 +186,24 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
       this.inputFieldUrl = this.currentUrl;
       this.webSocketService.connectToWebsite(this.currentUrl);
     }
+  }
+
+  connectToWebsite() {
+    if (this.inputFieldUrl) {
+      // Trim any "forward" history if user navigates after going back
+      this.history = this.history.slice(0, this.currentIndex + 1);
+
+      // Add new URL
+      this.history.push(this.inputFieldUrl);
+      this.currentIndex++;
+
+      this.currentUrl = this.inputFieldUrl;
+      this.webSocketService.connectToWebsite(this.inputFieldUrl);
+    }
+  }
+
+  takeScreenshot() {
+    this.webSocketService.takeScreenshot();
   }
 
   onMouseClick(event: MouseEvent) {
