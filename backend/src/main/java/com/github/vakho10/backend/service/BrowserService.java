@@ -18,11 +18,15 @@ import org.openqa.selenium.interactions.PointerInput;
 import org.openqa.selenium.interactions.Sequence;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -36,6 +40,10 @@ public class BrowserService {
     @Getter
     @Setter
     private String sessionId;
+
+    private final SimpMessagingTemplate messagingTemplate;
+    private ScheduledExecutorService scheduler;
+    private String lastScreenshot;
 
     @PostConstruct
     void init() {
@@ -52,10 +60,24 @@ public class BrowserService {
         devTools.createSession();
 
         log.debug("Browser initialized");
+
+        // Start the screenshot monitoring task
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(this::checkAndPushScreenshot, 0, 100, TimeUnit.MILLISECONDS);
     }
 
     @PreDestroy
     void destroy() {
+        if (scheduler != null) {
+            scheduler.shutdown();
+            try {
+                if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {
+                    scheduler.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                scheduler.shutdownNow();
+            }
+        }
         if (driver != null) {
             driver.quit();
             driver = null;
@@ -63,8 +85,25 @@ public class BrowserService {
         }
     }
 
+    private void checkAndPushScreenshot() {
+        if (driver == null || sessionId == null) {
+            return;
+        }
+
+        try {
+            String currentScreenshot = captureVisibleViewportScreenshot();
+            if (currentScreenshot != null && !currentScreenshot.equals(lastScreenshot)) {
+                lastScreenshot = currentScreenshot;
+                messagingTemplate.convertAndSend("/topic/screenshot.%s".formatted(sessionId), currentScreenshot);
+            }
+        } catch (Exception e) {
+            log.error("Failed to capture/push screenshot", e);
+        }
+    }
+
     public void touch() {
-        // An empty method to trigger bean instantiation, even if no other method is called
+        // An empty method to trigger bean instantiation, even if no other method is
+        // called
     }
 
     /**
@@ -86,8 +125,7 @@ public class BrowserService {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
-                Optional.empty()
-        ));
+                Optional.empty()));
         log.debug("Viewport resized to {}x{}", width, height);
     }
 
@@ -95,16 +133,20 @@ public class BrowserService {
      * Capture only the currently visible viewport.
      */
     public String captureVisibleViewportScreenshot() {
-        return devTools.send(
-                Page.captureScreenshot(
-                        Optional.empty(), // format
-                        Optional.empty(), // quality
-                        Optional.empty(), // clip
-                        Optional.empty(), // fromSurface
-                        Optional.of(false), // captureBeyondViewport = false
-                        Optional.empty() // optimizeForSpeed
-                )
-        );
+        try {
+            return devTools.send(
+                    Page.captureScreenshot(
+                            Optional.empty(), // format
+                            Optional.empty(), // quality
+                            Optional.empty(), // clip
+                            Optional.empty(), // fromSurface
+                            Optional.of(false), // captureBeyondViewport = false
+                            Optional.empty() // optimizeForSpeed
+                    ));
+        } catch (Exception e) {
+            log.warn("Failed to capture screenshot: {}", e.getMessage());
+            return null;
+        }
     }
 
     public void connectToUrl(String url) {

@@ -31,6 +31,9 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
   canvasRef!: ElementRef<HTMLCanvasElement>;
   private ctx!: CanvasRenderingContext2D;
 
+  history: string[] = [];
+  currentIndex = -1;
+
   ngOnInit() {
     this.webSocketService.activate();
 
@@ -136,8 +139,17 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   connectToWebsite() {
-    this.webSocketService.connectToWebsite(this.inputFieldUrl);
-    this.currentUrl = this.inputFieldUrl;
+    if (this.inputFieldUrl) {
+      // Trim any "forward" history if user navigates after going back
+      this.history = this.history.slice(0, this.currentIndex + 1);
+
+      // Add new URL
+      this.history.push(this.inputFieldUrl);
+      this.currentIndex++;
+
+      this.currentUrl = this.inputFieldUrl;
+      this.webSocketService.connectToWebsite(this.inputFieldUrl);
+    }
   }
 
   refreshPage() {
@@ -147,9 +159,21 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   goBack() {
+    if (this.currentIndex > 0) {
+      this.currentIndex--;
+      this.currentUrl = this.history[this.currentIndex];
+      this.inputFieldUrl = this.currentUrl;
+      this.webSocketService.connectToWebsite(this.currentUrl);
+    }
   }
 
   goForward() {
+    if (this.currentIndex < this.history.length - 1) {
+      this.currentIndex++;
+      this.currentUrl = this.history[this.currentIndex];
+      this.inputFieldUrl = this.currentUrl;
+      this.webSocketService.connectToWebsite(this.currentUrl);
+    }
   }
 
   onMouseClick(event: MouseEvent) {

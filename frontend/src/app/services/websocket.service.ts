@@ -1,6 +1,6 @@
-import {Injectable} from "@angular/core";
-import {Client, IMessage} from "@stomp/stompjs";
-import {ReplaySubject, Subject} from "rxjs";
+import { Injectable } from "@angular/core";
+import { Client, IMessage } from "@stomp/stompjs";
+import { ReplaySubject, Subject } from "rxjs";
 
 @Injectable({
   providedIn: "root",
@@ -15,11 +15,10 @@ export class WebSocketService {
 
   private screenshotSubscribed = false;
 
-  private pollingTimeoutId: any;
   private sessionId: string | null = null;
 
   constructor() {
-    this.client = new Client({brokerURL: '/ws', reconnectDelay: 5000});
+    this.client = new Client({ brokerURL: '/ws', reconnectDelay: 5000 });
 
     this.client.onConnect = () => {
       console.log("Connected to WebSocket");
@@ -55,9 +54,6 @@ export class WebSocketService {
           `/topic/screenshot.${this.sessionId}`,
           this.handleImageResponse.bind(this)
         );
-
-        // Start polling screenshots
-        this.startPollingScreenshots();
       });
 
       // Request session topic
@@ -66,12 +62,10 @@ export class WebSocketService {
 
     this.client.onDisconnect = () => {
       console.log("Disconnected from WebSocket");
-      this.stopPollingScreenshots();
     };
 
     this.client.onStompError = (frame) => {
       console.error("WebSocket Error:", frame);
-      this.stopPollingScreenshots();
     };
   }
 
@@ -82,14 +76,13 @@ export class WebSocketService {
 
   /** Deactivate the connection and stop polling */
   deactivate() {
-    this.stopPollingScreenshots();
     this.client.deactivate();
     this.sessionId = null;
     this.screenshotSubscribed = false;
   }
 
   resizeTo(width: number, height: number) {
-    this.resizeSubject.next({width, height});
+    this.resizeSubject.next({ width, height });
   }
 
   /** Send a command to connect the browser to a URL */
@@ -103,15 +96,6 @@ export class WebSocketService {
   private getSessionId() {
     this.client.publish({
       destination: "/app/get-session-id",
-      body: "",
-    });
-  }
-
-  /** Request a single screenshot from the server */
-  private requestScreenshot() {
-    if (!this.sessionId) return;
-    this.client.publish({
-      destination: "/app/get-screenshot",
       body: "",
     });
   }
@@ -134,27 +118,6 @@ export class WebSocketService {
   private handleImageResponse(message: IMessage) {
     console.log("Received screenshot");
     this.imageSubject.next(message.body);
-
-    // Stop any existing timeout before scheduling next
-    if (this.pollingTimeoutId) clearTimeout(this.pollingTimeoutId);
-
-    // Schedule the next request after 1 second
-    this.pollingTimeoutId = setTimeout(() => {
-      this.requestScreenshot();
-    }, 1000);
-  }
-
-  /** Start the polling loop */
-  private startPollingScreenshots() {
-    this.requestScreenshot();
-  }
-
-  /** Stop the polling loop */
-  private stopPollingScreenshots() {
-    if (this.pollingTimeoutId) {
-      clearTimeout(this.pollingTimeoutId);
-      this.pollingTimeoutId = null;
-    }
   }
 
   sendValueToActiveInput(value: string) {
@@ -181,7 +144,7 @@ export class WebSocketService {
   clickAt(x: number, y: number) {
     this.client.publish({
       destination: "/app/click-at",
-      body: JSON.stringify({x, y}),
+      body: JSON.stringify({ x, y }),
     });
   }
 }

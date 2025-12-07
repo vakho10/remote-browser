@@ -1,9 +1,9 @@
 <div class="d-flex flex-column h-100 position-relative">
   <nav class="bg-primary d-flex gap-1 p-1">
-    <button class="btn btn-primary" (click)="goBack()">
+    <button class="btn btn-primary" (click)="goBack()" [disabled]="currentIndex <= 0">
       <i class="fa-solid fa-arrow-left"></i>
     </button>
-    <button class="btn btn-primary" (click)="goForward()">
+    <button class="btn btn-primary" (click)="goForward()" [disabled]="currentIndex >= history.length - 1">
       <i class="fa-solid fa-arrow-right"></i>
     </button>
     <button class="btn btn-primary" (click)="refreshPage()">
