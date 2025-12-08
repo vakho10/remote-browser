@@ -63,7 +63,7 @@ public class BrowserService {
 
         // Start the screenshot monitoring task
         scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleAtFixedRate(this::checkAndPushScreenshot, 0, 100, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(this::checkAndPushScreenshot, 0, 200, TimeUnit.MILLISECONDS);
     }
 
     @PreDestroy
@@ -162,6 +162,9 @@ public class BrowserService {
     }
 
     public ActiveInputResponse clickAt(int x, int y) {
+        if (driver == null || sessionId == null) {
+            return null;
+        }
         // Using Selenium Actions API (low-level pointer input)
         PointerInput mouse = new PointerInput(PointerInput.Kind.MOUSE, "default mouse");
         Sequence click = new Sequence(mouse, 0);
@@ -195,10 +198,17 @@ public class BrowserService {
     }
 
     public void moveMouse(int x, int y) {
+        if (driver == null || sessionId == null) {
+            return;
+        }
         PointerInput mouse = new PointerInput(PointerInput.Kind.MOUSE, "default mouse");
         Sequence move = new Sequence(mouse, 0);
         move.addAction(mouse.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), x, y));
-        driver.perform(List.of(move));
+        try {
+            driver.perform(List.of(move));
+        } catch (org.openqa.selenium.interactions.MoveTargetOutOfBoundsException e) {
+            log.warn("Mouse move out of bounds: {}x{}", x, y);
+        }
     }
 
     public void sendValueToActiveInput(String value) {

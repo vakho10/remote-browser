@@ -90,7 +90,7 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
 
     // Mouse move events throttle
     this.mouseMoveSub = this.mouseMoveSubject.pipe(
-      throttleTime(50)
+      throttleTime(100)
     ).subscribe(pos => {
       this.webSocketService.moveMouse(pos.x, pos.y);
     });

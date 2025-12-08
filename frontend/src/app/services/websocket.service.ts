@@ -35,7 +35,7 @@ export class WebSocketService {
         // Subscribe to resize events and forward them to the backend
         this.resizeSubject.subscribe(size => {
           console.log("Resizing to:", size);
-          this.client.publish({
+          this.safePublish({
             destination: "/app/resize-to",
             body: JSON.stringify({
               width: size.width,
@@ -94,14 +94,14 @@ export class WebSocketService {
 
   /** Send a command to connect the browser to a URL */
   connectToWebsite(url: string) {
-    this.client.publish({
+    this.safePublish({
       destination: "/app/connect-to-url",
       body: url,
     });
   }
 
   private getSessionId() {
-    this.client.publish({
+    this.safePublish({
       destination: "/app/get-session-id",
       body: "",
     });
@@ -134,44 +134,52 @@ export class WebSocketService {
   }
 
   sendValueToActiveInput(value: string) {
-    this.client.publish({
+    this.safePublish({
       destination: "/app/send-value-to-active-input",
       body: value,
     });
   }
 
   scrollUp() {
-    this.client.publish({
+    this.safePublish({
       destination: "/app/scroll-up",
       body: "",
     });
   }
 
   scrollDown() {
-    this.client.publish({
+    this.safePublish({
       destination: "/app/scroll-down",
       body: "",
     });
   }
 
   clickAt(x: number, y: number) {
-    this.client.publish({
+    this.safePublish({
       destination: "/app/click-at",
       body: JSON.stringify({x, y}),
     });
   }
 
   moveMouse(x: number, y: number) {
-    this.client.publish({
+    this.safePublish({
       destination: "/app/move-mouse",
       body: JSON.stringify({x, y}),
     });
   }
 
   takeScreenshot() {
-    this.client.publish({
+    this.safePublish({
       destination: "/app/take-screenshot",
       body: "",
     });
+  }
+
+  private safePublish(params: { destination: string, body: string }) {
+    if (this.client.connected) {
+      this.client.publish(params);
+    } else {
+      console.warn("STOMP connection not established. Skipping publish to", params.destination);
+    }
   }
 }
