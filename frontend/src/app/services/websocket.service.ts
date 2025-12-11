@@ -1,6 +1,7 @@
-import {Injectable} from "@angular/core";
-import {Client, IMessage} from "@stomp/stompjs";
-import {ReplaySubject, Subject} from "rxjs";
+import { Injectable } from "@angular/core";
+import { Client, IMessage } from "@stomp/stompjs";
+import { BehaviorSubject, Observable, ReplaySubject, Subject } from "rxjs";
+import { filter, switchMap, take, timeout } from "rxjs/operators";
 
 @Injectable({
   providedIn: "root",
@@ -18,11 +19,15 @@ export class WebSocketService {
 
   private sessionId: string | null = null;
 
+  browserStatusSubject = new Subject<{ alive: boolean }>();
+  connected$ = new BehaviorSubject<boolean>(false);
+
   constructor() {
-    this.client = new Client({brokerURL: '/ws', reconnectDelay: 5000});
+    this.client = new Client({ brokerURL: '/ws', reconnectDelay: 5000 });
 
     this.client.onConnect = () => {
       console.log("Connected to WebSocket");
+      this.connected$.next(true);
 
       // Subscribe only once to get sessionId from the server
       this.client.subscribe("/topic/get-session-id", (msg: IMessage) => {
@@ -42,6 +47,16 @@ export class WebSocketService {
               height: size.height
             }),
           })
+        });
+
+        // Subscribe to browser status updates
+        this.client.subscribe(`/topic/get-browser-status.${this.sessionId}`, (msg: IMessage) => {
+          try {
+            const status = JSON.parse(msg.body);
+            this.browserStatusSubject.next(status);
+          } catch (e) {
+            console.error("Failed to parse browser status", e);
+          }
         });
 
         // Subscribe to active input trigger
@@ -69,6 +84,7 @@ export class WebSocketService {
 
     this.client.onDisconnect = () => {
       console.log("Disconnected from WebSocket");
+      this.connected$.next(false);
     };
 
     this.client.onStompError = (frame) => {
@@ -89,7 +105,7 @@ export class WebSocketService {
   }
 
   resizeTo(width: number, height: number) {
-    this.resizeSubject.next({width, height});
+    this.resizeSubject.next({ width, height });
   }
 
   /** Send a command to connect the browser to a URL */
@@ -98,6 +114,57 @@ export class WebSocketService {
       destination: "/app/connect-to-url",
       body: url,
     });
+  }
+
+  startBrowser() {
+    this.safePublish({
+      destination: "/app/start-browser",
+      body: ""
+    });
+  }
+
+  stopBrowser() {
+    this.safePublish({
+      destination: "/app/stop-browser",
+      body: ""
+    });
+  }
+
+  checkBrowserStatus() {
+    this.safePublish({
+      destination: "/app/get-browser-status",
+      body: ""
+    });
+  }
+
+  /**
+   * Returns an Observable that waits for connection, checks status,
+   * and emits true if alive, false otherwise.
+   */
+  getBrowserAlive(): Observable<boolean> {
+    // Ensure we are connected first
+    return this.connected$.pipe(
+      filter(connected => connected),
+      take(1),
+      timeout(5000), // Wait max 5s for connection
+      switchMap(() => {
+        console.log("getBrowserAlive: Connected, checking status...");
+        // Create an observable that listens for the status response
+        return new Observable<boolean>(observer => {
+          const sub = this.browserStatusSubject.subscribe(status => {
+            console.log("getBrowserAlive: Received status:", status);
+            observer.next(status.alive);
+            observer.complete();
+          });
+
+          // Trigger the check
+          console.log("getBrowserAlive: Triggering checkBrowserStatus");
+          this.checkBrowserStatus();
+
+          return () => sub.unsubscribe();
+        });
+      })
+    );
   }
 
   private getSessionId() {
@@ -157,14 +224,14 @@ export class WebSocketService {
   clickAt(x: number, y: number) {
     this.safePublish({
       destination: "/app/click-at",
-      body: JSON.stringify({x, y}),
+      body: JSON.stringify({ x, y }),
     });
   }
 
   moveMouse(x: number, y: number) {
     this.safePublish({
       destination: "/app/move-mouse",
-      body: JSON.stringify({x, y}),
+      body: JSON.stringify({ x, y }),
     });
   }
 

@@ -16,22 +16,18 @@
     <button class="btn btn-primary" (click)="takeScreenshot()">
       <i class="fa-solid fa-camera"></i>
     </button>
+    <button class="btn btn-danger" (click)="stopBrowser()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </nav>
   <main class="d-flex flex-column align-items-center justify-content-center flex-grow-1 position-relative">
 
     <!-- overlay defines target size -->
-    <div #overlay
-         style="pointer-events: none;"
-         class="flex-grow-1 position-absolute w-100 h-100 top-0 start-0 z-2"></div>
+    <div #overlay style="pointer-events: none;" class="flex-grow-1 position-absolute w-100 h-100 top-0 start-0 z-2">
+    </div>
 
     <!-- canvas draws the live remote screen -->
-    <canvas #screenCanvas
-            (click)="onMouseClick($event)"
-            (mousemove)="onMouseMove($event)"
+    <canvas #screenCanvas (click)="onMouseClick($event)" (mousemove)="onMouseMove($event)"
             class="position-absolute top-0 start-0 z-1"></canvas>
-
-    @if (!(webSocketService.imageSubject | async)) {
-      <p><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p>
-    }
   </main>
 </div>

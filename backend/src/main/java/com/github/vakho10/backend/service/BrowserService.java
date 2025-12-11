@@ -1,6 +1,7 @@
 package com.github.vakho10.backend.service;
 
 import com.github.vakho10.backend.payload.ActiveInputResponse;
+import com.github.vakho10.backend.payload.BrowserStatus;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -47,8 +48,16 @@ public class BrowserService {
 
     @PostConstruct
     void init() {
+        // Setup Chrome driver
         WebDriverManager.chromedriver().setup();
+    }
 
+    @PreDestroy
+    void destroy() {
+        stopBrowser();
+    }
+
+    public void startBrowser() {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--headless=new"); // Use new headless mode
         options.addArguments("--disable-gpu"); // Recommended for headless execution
@@ -66,8 +75,7 @@ public class BrowserService {
         scheduler.scheduleAtFixedRate(this::checkAndPushScreenshot, 0, 200, TimeUnit.MILLISECONDS);
     }
 
-    @PreDestroy
-    void destroy() {
+    public void stopBrowser() {
         if (scheduler != null) {
             scheduler.shutdown();
             try {
@@ -83,6 +91,12 @@ public class BrowserService {
             driver = null;
             log.debug("Browser destroyed");
         }
+    }
+
+    public BrowserStatus getBrowserStatus() {
+        return BrowserStatus.builder()
+                .alive(driver != null)
+                .build();
     }
 
     private void checkAndPushScreenshot() {
@@ -111,6 +125,9 @@ public class BrowserService {
      * not the outer Chrome window.
      */
     public void resizeViewport(int width, int height) {
+        if (devTools == null) {
+            return;
+        }
         devTools.send(Emulation.setDeviceMetricsOverride(
                 width,
                 height,
@@ -216,4 +233,4 @@ public class BrowserService {
         active.sendKeys(value);
         log.debug("Sent value '{}' to active input element", value);
     }
-}
+}   

@@ -1,9 +1,10 @@
-import {AfterViewInit, Component, ElementRef, inject, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {WebSocketService} from "../../services/websocket.service";
-import {AsyncPipe} from "@angular/common";
-import {FormsModule} from "@angular/forms";
-import {debounceTime, fromEvent, Subject, Subscription, throttleTime} from "rxjs";
-import {FileSaverService} from 'ngx-filesaver';
+import { AfterViewInit, Component, ElementRef, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { WebSocketService } from "../../services/websocket.service";
+import { AsyncPipe } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { debounceTime, fromEvent, interval, Subject, Subscription, throttleTime } from "rxjs";
+import { FileSaverService } from 'ngx-filesaver';
+import { Router } from "@angular/router";
 
 @Component({
   selector: 'app-remote-browser',
@@ -16,6 +17,7 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
 
   webSocketService = inject(WebSocketService);
   fileSaver = inject(FileSaverService);
+  router = inject(Router);
 
   currentUrl: string | null = null;
   inputFieldUrl = "";
@@ -28,11 +30,13 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
   private takenScreenshotSub?: Subscription;
   private mouseMoveSub?: Subscription;
   private mouseMoveSubject = new Subject<{ x: number, y: number }>();
+  private statusSub?: Subscription;
+  private pollSub?: Subscription;
 
-  @ViewChild('overlay', {static: true})
+  @ViewChild('overlay', { static: true })
   overlay!: ElementRef<HTMLDivElement>;
 
-  @ViewChild('screenCanvas', {static: true})
+  @ViewChild('screenCanvas', { static: true })
   canvasRef!: ElementRef<HTMLCanvasElement>;
   private ctx!: CanvasRenderingContext2D;
 
@@ -104,6 +108,8 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
     this.imageSub?.unsubscribe();
     this.takenScreenshotSub?.unsubscribe();
     this.mouseMoveSub?.unsubscribe();
+    this.statusSub?.unsubscribe();
+    this.pollSub?.unsubscribe();
   }
 
   /** Always resize canvas pixel size to overlay size */
@@ -171,7 +177,7 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
       buffer[i] = byteString.charCodeAt(i);
     }
 
-    return new Blob([buffer], {type: mime});
+    return new Blob([buffer], { type: mime });
   }
 
   refreshPage() {
@@ -214,6 +220,21 @@ export class RemoteBrowserComponent implements OnInit, AfterViewInit, OnDestroy 
 
   takeScreenshot() {
     this.webSocketService.takeScreenshot();
+  }
+
+  stopBrowser() {
+    this.webSocketService.stopBrowser();
+
+    // Start polling for status to confirm it's dead
+    this.statusSub = this.webSocketService.browserStatusSubject.subscribe(status => {
+      if (!status.alive) {
+        this.router.navigate(['/']);
+      }
+    });
+
+    this.pollSub = interval(1000).subscribe(() => {
+      this.webSocketService.checkBrowserStatus();
+    });
   }
 
   onMouseClick(event: MouseEvent) {

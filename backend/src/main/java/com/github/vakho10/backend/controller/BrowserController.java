@@ -24,6 +24,24 @@ public class BrowserController {
         return browserService.getSessionId();
     }
 
+    @MessageMapping("/start-browser")
+    public void startBrowser() {
+        browserService.startBrowser();
+    }
+
+    @MessageMapping("/stop-browser")
+    public void stopBrowser() {
+        browserService.stopBrowser();
+    }
+
+    @MessageMapping("/get-browser-status")
+    public void getBrowserStatus() {
+        messagingTemplate.convertAndSend(
+                "/topic/get-browser-status.%s".formatted(browserService.getSessionId()),
+                browserService.getBrowserStatus()
+        );
+    }
+
     @MessageMapping("/resize-to")
     public void resizeTo(@Payload ResizeRequest resizeRequest) {
         browserService.resizeViewport(resizeRequest.getWidth(), resizeRequest.getHeight());

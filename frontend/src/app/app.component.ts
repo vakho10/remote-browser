@@ -1,10 +1,10 @@
 import {Component} from '@angular/core';
-import {RemoteBrowserComponent} from "./components/remote-browser.component/remote-browser.component";
+import {RouterOutlet} from "@angular/router";
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RemoteBrowserComponent],
+  imports: [RouterOutlet],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
